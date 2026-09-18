@@ -8,6 +8,10 @@ To know more about breaking changes, see the [Migration Guide][].
 
 ## Unreleased
 
+*None.*
+
+## 3.13.0
+
 **Features**
 
 - Add `AndroidEditor.renameAsset` to rename an asset by updating its MediaStore `DISPLAY_NAME` on Android (#1314).
