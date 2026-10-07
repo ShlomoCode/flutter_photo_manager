@@ -22,8 +22,8 @@ class CacheFileTimesTest {
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
 
     @Test
-    fun copyingModificationTimePreservesAllNineFractionalDigits() {
-        // Given an original file with a known nanosecond timestamp.
+    fun cachedCopyPreservesNanosecondPrecision() {
+        // Given a source file whose modification time includes nine fractional digits.
         val source = File.createTempFile("source-", ".jpg", context.cacheDir)
         val copy = File.createTempFile("copy-", ".jpg", context.cacheDir)
         val expected = longArrayOf(1577934245, 123456789)
@@ -35,12 +35,12 @@ class CacheFileTimesTest {
                 assertArrayEquals(expected, longArrayOf(stat.st_mtim.tv_sec, stat.st_mtim.tv_nsec))
                 val time = CacheFileTimes.read(it.fd)!!
 
-                // When copying the bytes and applying the original timestamp.
+                // When copying the file and applying its original modification time.
                 source.copyTo(copy, overwrite = true)
                 assertTrue(CacheFileTimes.apply(copy, time))
             }
 
-            // Then Android's stat API reports all nine fractional digits on the copy.
+            // Then the copy retains the source's seconds and all nine fractional digits.
             ParcelFileDescriptor.open(copy, ParcelFileDescriptor.MODE_READ_ONLY).use {
                 val stat = Os.fstat(it.fileDescriptor)
                 assertArrayEquals(expected, longArrayOf(stat.st_mtim.tv_sec, stat.st_mtim.tv_nsec))
@@ -52,14 +52,14 @@ class CacheFileTimesTest {
     }
 
     @Test
-    fun pipeDescriptorsHaveNoOriginalModificationTime() {
-        // Given a provider that supplies media through a pipe.
+    fun readingModificationTimeFromPipeReturnsNull() {
+        // Given a pipe instead of a regular file.
         val pipe = ParcelFileDescriptor.createPipe()
         try {
-            // When reading its modification time.
+            // When requesting the pipe's file modification time.
             val time = CacheFileTimes.read(pipe[0].fd)
 
-            // Then use the MediaStore fallback rather than the pipe's timestamp.
+            // Then return null because the pipe has no original file timestamp.
             assertNull(time)
         } finally {
             pipe.forEach { it.close() }
@@ -67,8 +67,8 @@ class CacheFileTimesTest {
     }
 
     @Test
-    fun scopedCachePreservesTheSourceDescriptorTimestamp() {
-        // Given a MediaStore item and the exact timestamp reported by its descriptor.
+    fun cachingMediaStoreFilePreservesExactModificationTime() {
+        // Given a MediaStore file with its modification time read from a file descriptor.
         val resolver = context.contentResolver
         val values = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, "precise-timestamp-test.jpg")
@@ -89,10 +89,10 @@ class CacheFileTimesTest {
                 modifiedDate = expected[0], orientation = 0
             )
 
-            // When copying the media through ScopedCache.
+            // When copying the file into the cache.
             val copy = cache.getCacheFileFromEntity(context, asset, false)
 
-            // Then preserve the descriptor's seconds and nanoseconds.
+            // Then the copy has the same seconds, nanoseconds, and bytes as the source.
             ParcelFileDescriptor.open(copy, ParcelFileDescriptor.MODE_READ_ONLY).use {
                 val stat = Os.fstat(it.fileDescriptor)
                 assertArrayEquals(expected, longArrayOf(stat.st_mtim.tv_sec, stat.st_mtim.tv_nsec))
