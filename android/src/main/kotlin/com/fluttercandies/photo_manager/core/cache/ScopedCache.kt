@@ -41,10 +41,18 @@ class ScopedCache {
             LogUtils.info(
                 "Caching $assetId [origin: $isOrigin] into ${targetFile.absolutePath}"
             )
-            val inputStream = contentResolver.openInputStream(uri)
+            val descriptor = contentResolver.openAssetFileDescriptor(uri, "r")
                 ?: throw IllegalStateException("Cannot open input stream for $assetId")
-            FileOutputStream(tempFile).use { os ->
-                inputStream.use { it.copyTo(os) }
+            descriptor.use {
+                val modifiedTime = CacheFileTimes.read(it.parcelFileDescriptor.fd)
+                FileOutputStream(tempFile).use { os ->
+                    it.createInputStream().use { input -> input.copyTo(os) }
+                }
+                if (modifiedTime == null || !CacheFileTimes.apply(tempFile, modifiedTime)) {
+                    if (!tempFile.setLastModified(assetEntity.modifiedDate * 1000)) {
+                        LogUtils.error("Failed to preserve modification time for cached asset $assetId")
+                    }
+                }
             }
         } catch (e: Exception) {
             tempFile.delete()
