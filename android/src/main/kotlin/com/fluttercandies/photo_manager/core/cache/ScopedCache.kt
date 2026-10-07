@@ -46,6 +46,9 @@ class ScopedCache {
             FileOutputStream(tempFile).use { os ->
                 inputStream.use { it.copyTo(os) }
             }
+            if (!tempFile.setLastModified(assetEntity.modifiedDate * 1000)) {
+                LogUtils.error("Failed to preserve modification time for cached asset $assetId")
+            }
         } catch (e: Exception) {
             tempFile.delete()
             LogUtils.error("Caching $assetId [origin: $isOrigin] error", e)
