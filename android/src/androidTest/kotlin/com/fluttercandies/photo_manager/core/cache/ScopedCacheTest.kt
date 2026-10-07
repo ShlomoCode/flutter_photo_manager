@@ -29,15 +29,15 @@ class ScopedCacheTest {
     }
 
     @Test
-    fun cachedMediaKeepsOriginalModificationTime() {
-        // Given media whose original modification time predates the cache copy.
+    fun cachedCopyPreservesOriginalModificationTime() {
+        // Given a MediaStore asset with a reported modification time from 2020.
         val bytes = byteArrayOf(1, 2, 3)
         val asset = createAsset(bytes, 1577934245)
 
-        // When copying the media into the cache.
+        // When caching the selected media.
         val file = cache.getCacheFileFromEntity(context, asset, false)
 
-        // Then preserve the original time and bytes, including on a cache hit.
+        // Then preserve the original timestamp and bytes, and reuse the same cached file.
         assertEquals(1577934245000L, file.lastModified())
         assertArrayEquals(bytes, file.readBytes())
         assertEquals(file, cache.getCacheFileFromEntity(context, asset, false))
@@ -45,14 +45,14 @@ class ScopedCacheTest {
     }
 
     @Test
-    fun cachedMediaKeepsAnOriginalModificationTimeOfZero() {
-        // Given media with an original modification time at the Unix epoch.
+    fun cachedCopyPreservesZeroAsOriginalModificationTime() {
+        // Given an asset whose original modification time is zero (1970-01-01T00:00:00Z).
         val asset = createAsset(byteArrayOf(1, 2, 3), 0)
 
-        // When copying the media into the cache.
+        // When caching the selected media.
         val file = cache.getCacheFileFromEntity(context, asset, false)
 
-        // Then preserve zero as a valid timestamp.
+        // Then set the cached file's modification time to zero.
         assertEquals(0L, file.lastModified())
     }
 
