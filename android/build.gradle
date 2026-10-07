@@ -58,6 +58,7 @@ android {
 
     defaultConfig {
         minSdkVersion 16
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
 
     compileOptions {
@@ -80,6 +81,8 @@ dependencies {
     implementation 'com.github.bumptech.glide:glide:4.16.0'
     implementation 'androidx.exifinterface:exifinterface:1.4.2'
     testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test:runner:1.5.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
 }
 
 if (useBuiltInKotlin) {
